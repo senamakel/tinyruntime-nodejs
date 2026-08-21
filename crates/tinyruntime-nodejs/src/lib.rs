@@ -48,6 +48,17 @@ pub use error::{Error, Result};
 pub use harness::harness;
 pub use tinybus_module::DEFAULT_VERSION;
 pub use version::{bare_version, canonical_version, major, satisfies};
+
+/// Whether this provider's contract version can bind to the one it was built
+/// against.
+///
+/// Always true for a build whose vendored contract matches, and the check the
+/// router makes before routing anything here. Exposed so a host can assert it
+/// without reconstructing the comparison.
+#[must_use]
+pub fn is_compatible_with_contract() -> bool {
+    tinyruntime_bus::is_compatible(CONTRACT_VERSION)
+}
 pub use tinyruntime_bus::NODEJS;
 
 // The wire contract, re-exported whole, so a consumer of this crate names the

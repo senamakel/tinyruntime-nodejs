@@ -33,7 +33,8 @@ serde = { workspace = true }
 serde_json = { workspace = true }
 
 [dev-dependencies]
-# The layout tests probe a fabricated install tree in a scratch directory.
+# The layout tests probe a fabricated install tree in a scratch directory, and
+# the harness tests launch a real `node` against a loopback listener.
 tempfile = { workspace = true }
 
 [features]
