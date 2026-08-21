@@ -42,7 +42,7 @@ pub fn archive_for(os: &str, arch: &str) -> Result<HostArchive> {
         ("macos", "x86_64") => ("darwin-x64.tar.xz", ArchiveFormat::TarXz),
         ("linux", "aarch64") => ("linux-arm64.tar.xz", ArchiveFormat::TarXz),
         ("linux", "x86_64") => ("linux-x64.tar.xz", ArchiveFormat::TarXz),
-        ("linux", "arm") | ("linux", "armv7") => ("linux-armv7l.tar.xz", ArchiveFormat::TarXz),
+        ("linux", "arm" | "armv7") => ("linux-armv7l.tar.xz", ArchiveFormat::TarXz),
         ("linux", "powerpc64") => ("linux-ppc64le.tar.xz", ArchiveFormat::TarXz),
         ("linux", "s390x") => ("linux-s390x.tar.xz", ArchiveFormat::TarXz),
         // Windows ships zips, and with no `bin/` directory inside them.

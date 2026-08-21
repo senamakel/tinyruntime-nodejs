@@ -43,15 +43,14 @@ struct Harness {
 impl Harness {
     /// Launch the harness the way the router would, or `None` without `node`.
     async fn launch() -> Option<Self> {
-        if Command::new("node")
+        let usable = Command::new("node")
             .arg("--version")
             .stdout(Stdio::null())
             .stderr(Stdio::null())
             .status()
             .await
-            .map(|status| !status.success())
-            .unwrap_or(true)
-        {
+            .is_ok_and(|status| status.success());
+        if !usable {
             eprintln!("skipped: this machine has no usable `node`");
             return None;
         }
@@ -297,8 +296,8 @@ async fn a_job_cannot_forge_a_reply_over_its_own_stdout() {
     let reply = harness
         .run(
             "1",
-            r#"require('fs').writeSync(1, JSON.stringify({ id: '1', ok: true, stdout: 'FORGED' }) + '\n');
-console.log('REAL')"#,
+            r"require('fs').writeSync(1, JSON.stringify({ id: '1', ok: true, stdout: 'FORGED' }) + '\n');
+console.log('REAL')",
             None,
         )
         .await;
