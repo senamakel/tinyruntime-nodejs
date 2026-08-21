@@ -21,7 +21,7 @@ use crate::version;
 
 mod host;
 
-pub use host::{HostArchive, host_archive};
+pub use host::{HostArchive, archive_for, host_archive};
 
 /// Where Node.js publishes its releases.
 const DIST_BASE: &str = "https://nodejs.org/dist";

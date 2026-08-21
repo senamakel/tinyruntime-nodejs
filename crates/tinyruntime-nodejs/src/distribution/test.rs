@@ -3,8 +3,8 @@
 
 use tinyruntime_bus::ArchiveFormat;
 
-use super::host::archive_for;
-use super::{digest_for, host_archive};
+
+use super::{archive_for, digest_for, host_archive};
 use crate::error::Error;
 
 /// A realistic `SHASUMS256.txt` body, including the near-miss neighbours that
