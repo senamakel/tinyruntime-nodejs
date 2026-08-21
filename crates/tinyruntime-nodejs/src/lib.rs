@@ -15,7 +15,7 @@
 //!   that its digest lives in a `SHASUMS256.txt` beside it.
 //! - [`layout`] — that Unix keeps its tools under `bin/`, Windows keeps them at
 //!   the root, and `npm` must be reached through its launcher.
-//! - [`harness`] — what a warm Node worker is: a `worker_thread` per job, for a
+//! - [`harness`](mod@harness) — what a warm Node worker is: a `worker_thread` per job, for a
 //!   fresh module graph and a safe kill.
 //!
 //! It downloads nothing, installs nothing, and starts no worker. Every answer it
