@@ -46,8 +46,10 @@ async fn the_router_can_describe_this_provider_over_a_bus() -> TinyBusResult<()>
     let bus = MemoryBus::new();
     Broker::new().spawn(bus.clone());
 
+    // Held rather than moved: dropping the connection disconnects the peer, and
+    // the name it claimed goes with it.
     let module = Connection::connect(bus.connect().await?).await?;
-    setup(module).await?;
+    setup(module.clone()).await?;
 
     let client = Connection::connect(bus.connect().await?).await?;
     let proxy = client.proxy(
@@ -76,8 +78,10 @@ async fn the_harness_crosses_the_bus_intact() -> TinyBusResult<()> {
     let bus = MemoryBus::new();
     Broker::new().spawn(bus.clone());
 
+    // Held rather than moved: dropping the connection disconnects the peer, and
+    // the name it claimed goes with it.
     let module = Connection::connect(bus.connect().await?).await?;
-    setup(module).await?;
+    setup(module.clone()).await?;
 
     let client = Connection::connect(bus.connect().await?).await?;
     let proxy = client.proxy(
@@ -100,8 +104,10 @@ async fn a_directory_that_is_not_a_toolchain_is_reported_empty_rather_than_faili
     let bus = MemoryBus::new();
     Broker::new().spawn(bus.clone());
 
+    // Held rather than moved: dropping the connection disconnects the peer, and
+    // the name it claimed goes with it.
     let module = Connection::connect(bus.connect().await?).await?;
-    setup(module).await?;
+    setup(module.clone()).await?;
 
     let scratch = tempfile::tempdir().expect("scratch directory");
     let client = Connection::connect(bus.connect().await?).await?;
@@ -131,8 +137,10 @@ async fn detecting_a_host_interpreter_answers_rather_than_failing() -> TinyBusRe
     let bus = MemoryBus::new();
     Broker::new().spawn(bus.clone());
 
+    // Held rather than moved: dropping the connection disconnects the peer, and
+    // the name it claimed goes with it.
     let module = Connection::connect(bus.connect().await?).await?;
-    setup(module).await?;
+    setup(module.clone()).await?;
 
     let client = Connection::connect(bus.connect().await?).await?;
     let proxy = client.proxy(
@@ -154,8 +162,10 @@ async fn a_version_that_is_not_one_is_refused_with_a_readable_reason() -> TinyBu
     let bus = MemoryBus::new();
     Broker::new().spawn(bus.clone());
 
+    // Held rather than moved: dropping the connection disconnects the peer, and
+    // the name it claimed goes with it.
     let module = Connection::connect(bus.connect().await?).await?;
-    setup(module).await?;
+    setup(module.clone()).await?;
 
     let client = Connection::connect(bus.connect().await?).await?;
     let proxy = client.proxy(
