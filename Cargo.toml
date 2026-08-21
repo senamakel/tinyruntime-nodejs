@@ -30,6 +30,10 @@ repository = "https://github.com/tinyhumansai/tinyruntime-nodejs"
 # on one definition of these types, and a second copy would be a conversion at
 # every call site that nothing checks.
 tinyruntime-bus = { path = "vendor/tinyruntime/crates/tinyruntime-bus" }
+# The router, for tests only. Having both halves in one process is what lets the
+# end-to-end suite prove the split actually works: the router resolves and runs
+# through this provider without either side knowing it is a test.
+tinyruntime = { path = "vendor/tinyruntime/crates/tinyruntime" }
 # TinyBus defines the message types, interface macro, and frozen module ABI
 # used by the generated integration. Socket and CLI features are unnecessary
 # here.
