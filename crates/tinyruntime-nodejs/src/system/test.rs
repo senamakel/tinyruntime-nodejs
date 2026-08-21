@@ -152,3 +152,31 @@ async fn an_interpreter_that_prints_nothing_useful_is_skipped() {
             .is_none()
     );
 }
+
+#[test]
+fn the_windows_executable_lookup_is_checked_everywhere() {
+    // Only reached on Windows in production, so a `cfg!` branch would leave it
+    // untested on every machine that runs this suite.
+    let scratch = tempfile::tempdir().expect("scratch directory");
+    let named = scratch.path().join("node.exe");
+    std::fs::write(&named, b"binary").expect("the file writes");
+    #[cfg(unix)]
+    {
+        use std::os::unix::fs::PermissionsExt;
+        std::fs::set_permissions(&named, std::fs::Permissions::from_mode(0o755)).unwrap();
+    }
+
+    assert_eq!(
+        super::windows_executable(scratch.path(), "node", true),
+        Some(named)
+    );
+    assert_eq!(
+        super::windows_executable(scratch.path(), "node", false),
+        None,
+        "the lookup must not fire off Windows"
+    );
+    assert_eq!(
+        super::windows_executable(scratch.path(), "absent", true),
+        None
+    );
+}

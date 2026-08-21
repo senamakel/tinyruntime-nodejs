@@ -62,6 +62,20 @@ fn every_platform_node_builds_for_is_in_the_table() {
         ("linux", "x86_64", "linux-x64.tar.xz", ArchiveFormat::TarXz),
         ("windows", "x86_64", "win-x64.zip", ArchiveFormat::Zip),
         ("windows", "aarch64", "win-arm64.zip", ArchiveFormat::Zip),
+        ("linux", "arm", "linux-armv7l.tar.xz", ArchiveFormat::TarXz),
+        (
+            "linux",
+            "armv7",
+            "linux-armv7l.tar.xz",
+            ArchiveFormat::TarXz,
+        ),
+        (
+            "linux",
+            "powerpc64",
+            "linux-ppc64le.tar.xz",
+            ArchiveFormat::TarXz,
+        ),
+        ("linux", "s390x", "linux-s390x.tar.xz", ArchiveFormat::TarXz),
     ] {
         let entry =
             archive_for(os, arch).unwrap_or_else(|_| panic!("{os}/{arch} is not in the table"));
@@ -184,13 +198,17 @@ async fn a_distribution_carries_the_digest_the_release_published() {
 async fn a_release_that_does_not_list_this_hosts_archive_is_refused() {
     // Installing unverified is not an option: nodejs.org always publishes a
     // digest, so its absence means something is wrong with what is being served.
-    let (base, server) = serve_shasums("cd".repeat(32) + "  node-v22.11.0-some-other-host.tar.xz\n");
+    let (base, server) =
+        serve_shasums("cd".repeat(32) + "  node-v22.11.0-some-other-host.tar.xz\n");
 
     let error = super::select_from(&Client::new(), &base, &RuntimeSettings::new("v22.11.0"))
         .await
         .expect_err("an unlisted archive is refused");
 
-    assert!(matches!(error, Error::DigestUnavailable { .. }), "got {error:?}");
+    assert!(
+        matches!(error, Error::DigestUnavailable { .. }),
+        "got {error:?}"
+    );
     assert!(error.to_string().contains("22.11.0"), "got `{error}`");
     server.join().expect("the server finished");
 }
@@ -198,9 +216,13 @@ async fn a_release_that_does_not_list_this_hosts_archive_is_refused() {
 #[tokio::test]
 async fn a_version_that_is_not_one_is_refused_before_any_request() {
     // The server is never started, so reaching it would hang rather than fail.
-    let error = super::select_from(&Client::new(), "http://127.0.0.1:1", &RuntimeSettings::new("latest"))
-        .await
-        .expect_err("`latest` is not a version");
+    let error = super::select_from(
+        &Client::new(),
+        "http://127.0.0.1:1",
+        &RuntimeSettings::new("latest"),
+    )
+    .await
+    .expect_err("`latest` is not a version");
     assert!(matches!(error, Error::InvalidVersion(_)), "got {error:?}");
 }
 
@@ -224,5 +246,8 @@ async fn an_unreachable_release_index_is_reported_without_the_url() {
 
 #[test]
 fn the_host_format_is_reported_for_this_machine() {
-    assert_eq!(super::host_format(), host_archive().ok().map(|host| host.format));
+    assert_eq!(
+        super::host_format(),
+        host_archive().ok().map(|host| host.format)
+    );
 }

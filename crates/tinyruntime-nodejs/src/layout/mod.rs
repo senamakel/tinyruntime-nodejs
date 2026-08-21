@@ -22,7 +22,18 @@ use crate::version;
 /// to `npx` reaches the same install that is running it.
 #[must_use]
 pub fn bin_dir(install_dir: &Path) -> PathBuf {
-    if cfg!(windows) {
+    bin_dir_for(install_dir, cfg!(windows))
+}
+
+/// [`bin_dir`] with the platform stated explicitly.
+///
+/// The Windows shape is only correct by matching what the official zip actually
+/// contains, and a `cfg!(windows)` branch is never executed on the machines that
+/// run this suite. Passing the platform in is what lets both shapes be checked
+/// everywhere rather than only where they happen to apply.
+#[must_use]
+pub fn bin_dir_for(install_dir: &Path, windows: bool) -> PathBuf {
+    if windows {
         install_dir.to_path_buf()
     } else {
         install_dir.join("bin")
@@ -32,7 +43,15 @@ pub fn bin_dir(install_dir: &Path) -> PathBuf {
 /// The platform's filename for a toolchain tool.
 #[must_use]
 pub fn executable_name(tool: &str) -> String {
-    if !cfg!(windows) {
+    executable_name_for(tool, cfg!(windows))
+}
+
+/// [`executable_name`] with the platform stated explicitly.
+///
+/// See [`bin_dir_for`] for why the platform is a parameter.
+#[must_use]
+pub fn executable_name_for(tool: &str, windows: bool) -> String {
+    if !windows {
         return tool.to_owned();
     }
     match tool {

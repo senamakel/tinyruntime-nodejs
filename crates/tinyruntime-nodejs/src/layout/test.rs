@@ -130,3 +130,18 @@ async fn an_install_whose_interpreter_does_not_answer_is_not_described() {
 
     assert!(super::describe(scratch.path(), "v22.11.0").await.is_none());
 }
+
+#[test]
+fn the_windows_layout_is_checked_everywhere_rather_than_only_on_windows() {
+    // The official Windows zip has no `bin/` directory, and `npm` is a batch
+    // shim rather than the executable. Both are only correct by matching what
+    // the release ships, and neither is exercised by a `cfg!` branch on Linux.
+    let root = Path::new("/cache/node-v22.11.0");
+    assert_eq!(super::bin_dir_for(root, true), root);
+    assert_eq!(super::bin_dir_for(root, false), root.join("bin"));
+
+    assert_eq!(super::executable_name_for("node", true), "node.exe");
+    assert_eq!(super::executable_name_for("npm", true), "npm.cmd");
+    assert_eq!(super::executable_name_for("npx", true), "npx.cmd");
+    assert_eq!(super::executable_name_for("npm", false), "npm");
+}

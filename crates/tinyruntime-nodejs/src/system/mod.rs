@@ -106,14 +106,24 @@ fn locate(command: &str, path_var: Option<&std::ffi::OsString>) -> Option<PathBu
         if is_executable(&candidate) {
             return Some(candidate);
         }
-        if cfg!(windows) {
-            let with_extension = directory.join(format!("{command}.exe"));
-            if is_executable(&with_extension) {
-                return Some(with_extension);
-            }
+        if let Some(found) = windows_executable(&directory, command, cfg!(windows)) {
+            return Some(found);
         }
     }
     None
+}
+
+/// The `.exe` a bare command names on Windows, if it is there.
+///
+/// The platform is a parameter rather than a `cfg!`, so the Windows lookup is
+/// exercised on the machines that actually run this suite — otherwise it is code
+/// nobody tests until it is the only thing between a host and its interpreter.
+fn windows_executable(directory: &Path, command: &str, windows: bool) -> Option<PathBuf> {
+    if !windows {
+        return None;
+    }
+    let candidate = directory.join(format!("{command}.exe"));
+    is_executable(&candidate).then_some(candidate)
 }
 
 /// Whether `path` is a file this process could execute.
