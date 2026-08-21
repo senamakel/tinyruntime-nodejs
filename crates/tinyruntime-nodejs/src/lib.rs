@@ -1,62 +1,58 @@
-//! A production-ready starting point for an installable `TinyBus` module.
+//! The Node.js runtime provider for tinyruntime.
 //!
-//! This crate is a template. It ships the layout, lint configuration, error
-//! handling, testing, and documentation conventions described in `AGENTS.md`.
-//! The compiled `cdylib` exports `TinyBus` module ABI v1 and serves the example
-//! [`greet`] behavior over the bus.
+//! # What this crate is
 //!
-//! # Layout
+//! One half of a deliberate split. `tinyruntime` — the router — owns everything
+//! that is the same for every language: downloading an archive, verifying its
+//! digest, unpacking it, promoting it into a cache atomically, reusing it on the
+//! next start, and keeping a bounded set of warm interpreter processes in front
+//! of it. This crate owns everything that is true only of Node.js:
 //!
-//! This is the implementation half of a two-crate workspace:
+//! - [`version`] — that compatibility is a major-line question, which is why a
+//!   host with `v22.8.0` satisfies a request for `v22.11.0` and never downloads.
+//! - [`system`] — how to find a host interpreter and ask it what it is.
+//! - [`distribution`] — which archive nodejs.org publishes for this machine, and
+//!   that its digest lives in a `SHASUMS256.txt` beside it.
+//! - [`layout`] — that Unix keeps its tools under `bin/`, Windows keeps them at
+//!   the root, and `npm` must be reached through its launcher.
+//! - [`harness`] — what a warm Node worker is: a `worker_thread` per job, for a
+//!   fresh module graph and a safe kill.
 //!
-//! - [`template_bus`] — the wire contract. Member names, payload types, and the
-//!   contract version, with no transport and no behavior. A host that only
-//!   makes calls depends on that crate alone.
-//! - `template` — this crate. The behavior, the crate-wide error type, and the
-//!   `TinyBus` adapter that serves them, built as both an `rlib` and the
-//!   `cdylib` the loader consumes.
+//! It downloads nothing, installs nothing, and starts no worker. Every answer it
+//! gives is a description the router acts on.
 //!
-//! Within this crate:
+//! # Using it
 //!
-//! - `src/error/` holds the crate-wide [`Error`] enum and the [`Result`] alias
-//!   returned by every fallible public function.
-//! - Each feature area lives in its own module directory with a `mod.rs`
-//!   module root, an optional `types.rs`, and a `test.rs` holding its unit
-//!   tests.
-//! - Every public item is re-exported from here — including all of
-//!   [`template_bus`] — so downstream users have a single predictable surface
-//!   and `template::GreetRequest` is the *same type* as
-//!   `template_bus::GreetRequest`, not a structural twin.
-//! - `tinybus_module` adapts the public behavior to `TinyBus` and exports the
-//!   module descriptor, embedded manifest, and initialization entrypoint.
-//!
-//! # Example
+//! Load it alongside `tinyruntime`, which routes `nodejs` to the well-known name
+//! this module claims. A host then asks the router to run JavaScript and never
+//! addresses this module directly.
 //!
 //! ```
-//! use template::{greet, Error, GreetRequest};
+//! use tinyruntime_nodejs::{DEFAULT_VERSION, satisfies};
 //!
-//! assert_eq!(greet("Ferris")?, "Hello, Ferris!");
-//! assert_eq!(greet("   ").unwrap_err(), Error::EmptyName);
-//! assert_eq!(GreetRequest::new("Ferris").name, "Ferris");
-//! # Ok::<(), template::Error>(())
+//! // The rule that keeps most machines from downloading anything.
+//! assert!(satisfies("v22.8.0", DEFAULT_VERSION));
+//! assert!(!satisfies("v20.11.0", DEFAULT_VERSION));
 //! ```
-//!
-//! Replace the `greeting` module with the first real feature area, keep the
-//! conventions, and update this documentation to describe the new crate.
 
-mod error;
-mod greeting;
+pub mod distribution;
+pub mod error;
+pub mod harness;
+pub mod layout;
+pub mod system;
+pub mod version;
+
 mod tinybus_module;
 
 pub use error::{Error, Result};
-pub use greeting::greet;
+pub use harness::harness;
+pub use tinybus_module::DEFAULT_VERSION;
+pub use version::{bare_version, canonical_version, major, satisfies};
 
-// The wire contract, re-exported by module rather than by item so every path
-// through this crate resolves to the same definitions the contract crate
-// publishes. A host may depend on `template-bus` directly and get exactly these
-// types; nothing here redefines them.
-pub use template_bus;
-pub use template_bus::{
-    CONTRACT_VERSION, GreetRequest, GreetResponse, INTERFACE, METHODS, OBJECT_PATH, is_compatible,
-    names, version,
+// The wire contract, re-exported whole, so a consumer of this crate names the
+// very types the module serves rather than copies of them.
+pub use tinyruntime_bus::{
+    ArchiveFormat, CONTRACT_VERSION, Distribution, Language, LayoutRequest, LayoutResponse,
+    PROVIDER_INTERFACE, PROVIDER_METHODS, PROVIDER_OBJECT_PATH, ProviderDescriptor, RuntimeLayout,
+    RuntimeSettings, WORKER_PROTOCOL_VERSION, WorkerHarness, names,
 };

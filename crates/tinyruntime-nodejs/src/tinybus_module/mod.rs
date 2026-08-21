@@ -1,38 +1,105 @@
-//! `TinyBus` module entrypoint and bus-facing interface.
+//! The `TinyBus` module entrypoint and the provider interface.
 //!
-//! This adapter keeps the feature implementation independent from `TinyBus`
-//! while exposing it as an installable, dynamically loaded integration. The
-//! names and payload types it serves come from [`template_bus`], so a host
-//! spells them from the contract crate instead of repeating string literals.
+//! This module answers the router's five questions and does nothing else. It
+//! downloads no archive, unpacks nothing, writes nothing to a cache, and starts
+//! no worker — all of that belongs to the router, which does it identically for
+//! every language.
+//!
+//! What is left is exactly the Node.js knowledge: which host interpreters count
+//! as compatible, which archive nodejs.org publishes for this machine, where the
+//! binaries sit once it is unpacked, and what a warm Node worker looks like.
+//!
+//! The interface it serves is [`names::PROVIDER_INTERFACE`], the same one every
+//! provider serves — that is what makes them interchangeable. The well-known name
+//! it claims is its own, because two peers cannot hold the same one.
 
-use template_bus::{GreetRequest, GreetResponse, names};
+use std::path::Path;
+
+use reqwest::Client;
 use tinybus::{Connection, Result as TinyBusResult};
 
-struct GreetingService;
+use tinyruntime_bus::{
+    Distribution, Language, LayoutRequest, LayoutResponse, ProviderDescriptor, RuntimeSettings,
+    WorkerHarness, names,
+};
 
-#[tinybus::interface(name = "ai.tinyhumans.template.Greeting")]
-impl GreetingService {
-    async fn greet(&self, request: GreetRequest) -> TinyBusResult<GreetResponse> {
-        std::future::ready(crate::greet(&request.name))
+use crate::{distribution, harness, layout, system};
+
+/// The version this provider targets when a host expresses no preference.
+///
+/// A current long-term-support line: the version a host gets by saying nothing
+/// should be the one that will still be supported for a while.
+pub const DEFAULT_VERSION: &str = "v22.11.0";
+
+/// The object this module serves.
+struct NodeProvider {
+    client: Client,
+}
+
+#[tinybus::interface(name = "ai.tinyhumans.runtime.Provider")]
+impl NodeProvider {
+    /// What this provider is and what it targets by default.
+    async fn describe(&self) -> TinyBusResult<ProviderDescriptor> {
+        let mut descriptor =
+            ProviderDescriptor::new(Language::nodejs(), "Node.js", DEFAULT_VERSION);
+        for tool in layout::TOOLS {
+            descriptor = descriptor.with_executable(*tool);
+        }
+        std::future::ready(Ok(descriptor)).await
+    }
+
+    /// Look for a compatible Node.js already on this host.
+    async fn detect_system(&self, settings: RuntimeSettings) -> TinyBusResult<LayoutResponse> {
+        Ok(match system::detect(&settings).await {
+            Some(layout) => LayoutResponse::found(layout),
+            None => LayoutResponse::missing(),
+        })
+    }
+
+    /// Pick the archive nodejs.org should be asked for.
+    async fn select_distribution(
+        &self,
+        settings: RuntimeSettings,
+    ) -> TinyBusResult<Distribution> {
+        distribution::select(&self.client, &settings)
             .await
-            .map(GreetResponse::new)
             .map_err(|error| tinybus::Error::failed(error.to_string()))
+    }
+
+    /// Report where the executables are inside an install the router unpacked.
+    async fn layout(&self, request: LayoutRequest) -> TinyBusResult<LayoutResponse> {
+        let found = layout::describe(Path::new(&request.install_dir), &request.settings.version)
+            .await
+            .map_or_else(LayoutResponse::missing, LayoutResponse::found);
+        Ok(found)
+    }
+
+    /// Supply the warm-worker harness for this language.
+    async fn harness(&self) -> TinyBusResult<WorkerHarness> {
+        std::future::ready(Ok(harness::harness())).await
     }
 }
 
+/// Start serving the provider interface.
 async fn setup(connection: Connection) -> TinyBusResult<()> {
     connection
-        .serve_at(names::OBJECT_PATH.try_into()?, GreetingService)
+        .serve_at(
+            names::PROVIDER_OBJECT_PATH.try_into()?,
+            NodeProvider {
+                client: Client::new(),
+            },
+        )
         .await?;
-    connection.request_name(names::INTERFACE).await?;
+    connection.request_name(names::providers::NODEJS).await?;
+    tracing::info!("[tinyruntime-nodejs] serving the node.js runtime provider");
     Ok(())
 }
 
 tinybus_module::module_export! {
     setup = setup,
     worker_threads = 1,
-    provides = ["ai.tinyhumans.template.Greeting"],
-    methods = ["Greet"],
+    provides = ["ai.tinyhumans.runtime.nodejs.Provider"],
+    methods = ["Describe", "DetectSystem", "SelectDistribution", "Layout", "Harness"],
     signals = [],
     requires = [],
     optional = [],
