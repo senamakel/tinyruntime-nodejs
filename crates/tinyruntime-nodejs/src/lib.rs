@@ -48,6 +48,7 @@ pub use error::{Error, Result};
 pub use harness::harness;
 pub use tinybus_module::DEFAULT_VERSION;
 pub use version::{bare_version, canonical_version, major, satisfies};
+pub use tinyruntime_bus::NODEJS;
 
 // The wire contract, re-exported whole, so a consumer of this crate names the
 // very types the module serves rather than copies of them.

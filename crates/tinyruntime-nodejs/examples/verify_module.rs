@@ -4,7 +4,7 @@ use std::io;
 use std::path::PathBuf;
 use std::time::Duration;
 
-use template::{GreetRequest, GreetResponse, names};
+use tinyruntime_nodejs::{ProviderDescriptor, names};
 use tinybus::Connection;
 use tinybus::broker::Broker;
 use tinybus::module::ModuleHost;
@@ -32,7 +32,10 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
     tokio::time::timeout(Duration::from_secs(5), async {
         loop {
             let claimed = client.list_names().await?;
-            if claimed.iter().any(|name| name.as_str() == names::INTERFACE) {
+            if claimed
+                .iter()
+                .any(|name| name.as_str() == names::providers::NODEJS)
+            {
                 return tinybus::Result::Ok(());
             }
             tokio::task::yield_now().await;
@@ -40,22 +43,29 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
     })
     .await??;
 
-    let proxy = client.proxy(names::INTERFACE, names::OBJECT_PATH, names::INTERFACE)?;
-    let reply: GreetResponse = proxy
-        .call(names::methods::GREET, (GreetRequest::new("TinyBus"),))
-        .await?;
-    if reply.greeting != "Hello, TinyBus!" {
+    // `Describe` is the right probe for a provider: it exercises the whole
+    // dispatch path and needs neither a network nor an installed toolchain, so
+    // it verifies the artifact rather than the machine it happens to run on.
+    let proxy = client.proxy(
+        names::providers::NODEJS,
+        names::PROVIDER_OBJECT_PATH,
+        names::PROVIDER_INTERFACE,
+    )?;
+    let descriptor: ProviderDescriptor = proxy.call(names::provider_methods::DESCRIBE, ()).await?;
+    if descriptor.language.as_str() != tinyruntime_nodejs::NODEJS {
         return Err(io::Error::other(format!(
-            "module returned an unexpected greeting: {}",
-            reply.greeting
+            "module claims to serve `{}` rather than node.js",
+            descriptor.language
         ))
         .into());
     }
 
     println!(
-        "verified {} as TinyBus module `{}`",
+        "verified {} as TinyBus module `{}`, providing {} {}",
         module.display(),
-        info.name
+        info.name,
+        descriptor.display_name,
+        descriptor.default_version
     );
     broker_task.abort();
     Ok(())
