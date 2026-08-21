@@ -78,6 +78,11 @@ async fn a_preferred_command_that_is_not_there_falls_through_rather_than_failing
 }
 
 /// Write an executable standing in for `node`, printing `version`.
+///
+/// Waits until the script actually runs before returning. A file written and
+/// immediately executed can transiently fail — the kernel may still see a writer
+/// on it — and the detector reports any failure as "no interpreter", which would
+/// surface as a confusing assertion failure rather than as the flake it is.
 #[cfg(unix)]
 fn fake_node(directory: &std::path::Path, name: &str, version: &str) -> std::path::PathBuf {
     use std::os::unix::fs::PermissionsExt;
@@ -86,7 +91,21 @@ fn fake_node(directory: &std::path::Path, name: &str, version: &str) -> std::pat
     std::fs::write(&path, format!("#!/bin/sh\necho '{version}'\n")).expect("the script writes");
     std::fs::set_permissions(&path, std::fs::Permissions::from_mode(0o755))
         .expect("the script is executable");
-    path
+
+    for _ in 0..50 {
+        if std::process::Command::new(&path)
+            .arg("--version")
+            .output()
+            .is_ok_and(|out| out.status.success())
+        {
+            return path;
+        }
+        std::thread::sleep(std::time::Duration::from_millis(20));
+    }
+    panic!(
+        "the fake interpreter at {} never became runnable",
+        path.display()
+    );
 }
 
 #[cfg(unix)]
