@@ -23,6 +23,14 @@ use tinyruntime_nodejs::{WORKER_PROTOCOL_VERSION, harness};
 /// How long any single step may take before the test gives up.
 const STEP_TIMEOUT: Duration = Duration::from_secs(30);
 
+/// Read and discard a child stream, so the job writing to it never blocks.
+fn drain(stream: impl tokio::io::AsyncRead + Send + Unpin + 'static) {
+    tokio::spawn(async move {
+        let mut lines = BufReader::new(stream).lines();
+        while let Ok(Some(_)) = lines.next_line().await {}
+    });
+}
+
 /// A harness process under test, plus the protocol connection to it.
 struct Harness {
     _child: Child,
@@ -86,7 +94,10 @@ impl Harness {
         .unwrap();
 
         assert_eq!(handshake["ready"], serde_json::json!(true));
-        assert_eq!(handshake["protocol"], serde_json::json!(WORKER_PROTOCOL_VERSION));
+        assert_eq!(
+            handshake["protocol"],
+            serde_json::json!(WORKER_PROTOCOL_VERSION)
+        );
         assert_eq!(handshake["language"], serde_json::json!("nodejs"));
         assert_eq!(
             handshake["token"],
@@ -94,8 +105,15 @@ impl Harness {
             "the harness must echo the secret it was given"
         );
 
-        let _ = child.stdout.take();
-        let _ = child.stderr.take();
+        // Drain the child's own file descriptors, exactly as the router does.
+        // This is not tidiness: a job that writes to fd 1 gets EPIPE if nothing
+        // is reading, and blocks outright once the pipe fills.
+        if let Some(stdout) = child.stdout.take() {
+            drain(stdout);
+        }
+        if let Some(stderr) = child.stderr.take() {
+            drain(stderr);
+        }
         let cwd = scratch.path().to_path_buf();
         Some(Self {
             _child: child,
@@ -128,7 +146,11 @@ impl Harness {
             .unwrap()
             .expect("the harness sent a reply");
         let reply: serde_json::Value = serde_json::from_str(&reply).unwrap();
-        assert_eq!(reply["id"], serde_json::json!(id), "reply was for another job");
+        assert_eq!(
+            reply["id"],
+            serde_json::json!(id),
+            "reply was for another job"
+        );
         reply
     }
 }
@@ -153,9 +175,16 @@ async fn one_warm_worker_serves_many_jobs() {
     };
     for index in 0..3 {
         let reply = harness
-            .run(&index.to_string(), &format!("console.log({index} + 1)"), None)
+            .run(
+                &index.to_string(),
+                &format!("console.log({index} + 1)"),
+                None,
+            )
             .await;
-        assert_eq!(reply["stdout"], serde_json::json!(format!("{}\n", index + 1)));
+        assert_eq!(
+            reply["stdout"],
+            serde_json::json!(format!("{}\n", index + 1))
+        );
     }
 }
 
@@ -165,7 +194,11 @@ async fn a_job_that_throws_reports_a_non_zero_exit_without_killing_the_worker() 
         return;
     };
     let thrown = harness.run("1", "throw new Error('boom')", None).await;
-    assert_eq!(thrown["ok"], serde_json::json!(true), "the harness ran it; the job failed");
+    assert_eq!(
+        thrown["ok"],
+        serde_json::json!(true),
+        "the harness ran it; the job failed"
+    );
     assert_ne!(thrown["exit_code"], serde_json::json!(0));
     assert!(thrown["stderr"].as_str().unwrap().contains("boom"));
 
@@ -223,7 +256,12 @@ async fn a_job_whose_directory_is_missing_fails_rather_than_running_elsewhere() 
         )
         .await;
     assert_eq!(reply["ok"], serde_json::json!(false), "the job ran anyway");
-    assert!(reply["error"].as_str().unwrap().contains("failed to set worker cwd"));
+    assert!(
+        reply["error"]
+            .as_str()
+            .unwrap()
+            .contains("failed to set worker cwd")
+    );
     assert!(!sentinel.exists(), "the job escaped its sandbox");
 }
 
@@ -269,10 +307,11 @@ console.log('REAL')"#,
     // router drains and logs and never parses. What matters is that it did not
     // become this job's reply: the reply is the harness's own, and the job's
     // captured output is only what it wrote through the worker's own stream.
-    assert_eq!(reply["ok"], serde_json::json!(true));
+    assert_eq!(reply["ok"], serde_json::json!(true), "reply was {reply}");
     assert_eq!(
-        reply["stdout"], serde_json::json!("REAL\n"),
-        "a job's fd-level write reached the protocol reply"
+        reply["stdout"],
+        serde_json::json!("REAL\n"),
+        "a job's fd-level write reached the protocol reply: {reply}"
     );
     assert_eq!(reply["exit_code"], serde_json::json!(0));
 }

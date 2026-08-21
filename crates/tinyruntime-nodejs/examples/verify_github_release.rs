@@ -12,11 +12,11 @@
 use std::io;
 use std::time::Duration;
 
-use tinyruntime_nodejs::{ProviderDescriptor, names};
 use tinybus::Connection;
 use tinybus::broker::Broker;
 use tinybus::module::ModuleHost;
 use tinybus::transport::memory::MemoryBus;
+use tinyruntime_nodejs::{ProviderDescriptor, names};
 
 #[tokio::main]
 async fn main() -> Result<(), Box<dyn std::error::Error>> {
@@ -75,9 +75,7 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
 
     println!(
         "verified {archive} from {release_url} as TinyBus module `{}`, providing {} {}",
-        info.name,
-        descriptor.display_name,
-        descriptor.default_version
+        info.name, descriptor.display_name, descriptor.default_version
     );
     broker_task.abort();
     Ok(())

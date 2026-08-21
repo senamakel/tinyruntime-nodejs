@@ -4,11 +4,11 @@ use std::io;
 use std::path::PathBuf;
 use std::time::Duration;
 
-use tinyruntime_nodejs::{ProviderDescriptor, names};
 use tinybus::Connection;
 use tinybus::broker::Broker;
 use tinybus::module::ModuleHost;
 use tinybus::transport::memory::MemoryBus;
+use tinyruntime_nodejs::{ProviderDescriptor, names};
 
 #[tokio::main]
 async fn main() -> Result<(), Box<dyn std::error::Error>> {

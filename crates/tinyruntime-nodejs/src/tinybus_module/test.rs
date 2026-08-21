@@ -57,9 +57,7 @@ async fn the_router_can_describe_this_provider_over_a_bus() -> TinyBusResult<()>
         names::PROVIDER_OBJECT_PATH,
         names::PROVIDER_INTERFACE,
     )?;
-    let descriptor: ProviderDescriptor = proxy
-        .call(names::provider_methods::DESCRIBE, ())
-        .await?;
+    let descriptor: ProviderDescriptor = proxy.call(names::provider_methods::DESCRIBE, ()).await?;
 
     assert_eq!(descriptor.language, Language::nodejs());
     assert_eq!(descriptor.display_name, "Node.js");

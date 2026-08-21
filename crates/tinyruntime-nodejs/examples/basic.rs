@@ -29,7 +29,10 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
     }
 
     match tinyruntime_nodejs::system::detect(&RuntimeSettings::new(DEFAULT_VERSION)).await {
-        Some(layout) => println!("found a host toolchain: {} at {}", layout.version, layout.bin_dir),
+        Some(layout) => println!(
+            "found a host toolchain: {} at {}",
+            layout.version, layout.bin_dir
+        ),
         None => println!("no compatible host toolchain; the router would install one"),
     }
 

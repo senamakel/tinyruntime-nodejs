@@ -46,7 +46,11 @@ async fn a_binary_that_does_not_understand_the_flag_is_not_a_toolchain() {
 
 #[tokio::test]
 async fn a_binary_that_is_not_there_is_not_probed_successfully() {
-    assert!(probe_version(Path::new("/nonexistent/node")).await.is_none());
+    assert!(
+        probe_version(Path::new("/nonexistent/node"))
+            .await
+            .is_none()
+    );
 }
 
 #[tokio::test]

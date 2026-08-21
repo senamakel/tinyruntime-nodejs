@@ -18,7 +18,10 @@ fn messages_are_lowercase_and_unpunctuated() {
     ];
     for error in errors {
         let rendered = error.to_string();
-        assert!(!rendered.ends_with('.'), "`{rendered}` ends with punctuation");
+        assert!(
+            !rendered.ends_with('.'),
+            "`{rendered}` ends with punctuation"
+        );
         let first = rendered.chars().next().expect("a non-empty message");
         assert!(!first.is_uppercase(), "`{rendered}` starts with a capital");
     }

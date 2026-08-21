@@ -35,7 +35,9 @@ fn the_harness_announces_the_protocol_version_this_build_speaks() {
     // The script's constant and the contract's are two separate declarations of
     // one number; a mismatch fails every handshake at runtime.
     assert!(
-        SOURCE.contains(&format!("const PROTOCOL_VERSION = {WORKER_PROTOCOL_VERSION};")),
+        SOURCE.contains(&format!(
+            "const PROTOCOL_VERSION = {WORKER_PROTOCOL_VERSION};"
+        )),
         "the harness declares a different protocol version than the contract"
     );
 }

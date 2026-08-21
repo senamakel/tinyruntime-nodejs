@@ -7,7 +7,11 @@ use super::{bare_version, canonical_version, major, satisfies};
 fn every_spelling_that_turns_up_in_practice_parses() {
     assert_eq!(major("v22.11.0"), Some(22));
     assert_eq!(major("22.11.0"), Some(22));
-    assert_eq!(major("v22.11.0\n"), Some(22), "this is what `node --version` prints");
+    assert_eq!(
+        major("v22.11.0\n"),
+        Some(22),
+        "this is what `node --version` prints"
+    );
     assert_eq!(major("  22  "), Some(22));
 }
 
@@ -46,5 +50,8 @@ fn canonical_and_bare_spellings_round_trip() {
     assert_eq!(canonical_version("v22.11.0"), "v22.11.0");
     assert_eq!(bare_version("v22.11.0"), "22.11.0");
     assert_eq!(bare_version("22.11.0"), "22.11.0");
-    assert_eq!(bare_version(canonical_version("22.11.0").as_str()), "22.11.0");
+    assert_eq!(
+        bare_version(canonical_version("22.11.0").as_str()),
+        "22.11.0"
+    );
 }

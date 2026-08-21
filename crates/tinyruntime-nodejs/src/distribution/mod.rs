@@ -50,10 +50,13 @@ pub async fn select(client: &Client, settings: &RuntimeSettings) -> Result<Distr
         "[tinyruntime-nodejs] selected a distribution for this host"
     );
 
-    Ok(
-        Distribution::new(version::bare_version(&version), &archive_name, url, host.format)
-            .with_sha256(digest),
+    Ok(Distribution::new(
+        version::bare_version(&version),
+        &archive_name,
+        url,
+        host.format,
     )
+    .with_sha256(digest))
 }
 
 /// Read `SHASUMS256.txt` for a release and return the digest for one archive.

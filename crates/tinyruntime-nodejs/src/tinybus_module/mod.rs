@@ -57,10 +57,7 @@ impl NodeProvider {
     }
 
     /// Pick the archive nodejs.org should be asked for.
-    async fn select_distribution(
-        &self,
-        settings: RuntimeSettings,
-    ) -> TinyBusResult<Distribution> {
+    async fn select_distribution(&self, settings: RuntimeSettings) -> TinyBusResult<Distribution> {
         distribution::select(&self.client, &settings)
             .await
             .map_err(|error| tinybus::Error::failed(error.to_string()))
