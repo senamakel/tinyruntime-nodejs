@@ -26,6 +26,20 @@ const PROBE_TIMEOUT: Duration = Duration::from_secs(5);
 /// Returns `None` when nothing on `PATH` matches, which is the signal for the
 /// router to install a managed toolchain instead.
 pub async fn detect(settings: &RuntimeSettings) -> Option<RuntimeLayout> {
+    detect_in(settings, std::env::var_os("PATH").as_ref()).await
+}
+
+/// [`detect`] with the search path supplied explicitly.
+///
+/// Split out so a test can point the probe at a directory it controls. Rewriting
+/// the process environment is not an option — `unsafe` is forbidden workspace-wide
+/// and a shared `PATH` would make concurrent tests interfere — and a detector
+/// that cannot be tested against a known interpreter is one whose candidate
+/// ordering nothing checks.
+pub async fn detect_in(
+    settings: &RuntimeSettings,
+    path_var: Option<&std::ffi::OsString>,
+) -> Option<RuntimeLayout> {
     if version::major(&settings.version).is_none() {
         tracing::warn!(
             "[tinyruntime-nodejs] the requested version is not a version; skipping host detection"
@@ -34,7 +48,7 @@ pub async fn detect(settings: &RuntimeSettings) -> Option<RuntimeLayout> {
     }
 
     for candidate in candidates(settings.preferred_command()) {
-        let Some(path) = locate(&candidate) else {
+        let Some(path) = locate(&candidate, path_var) else {
             continue;
         };
         let Some(reported) = probe_version(&path).await else {
@@ -80,14 +94,14 @@ fn candidates(preferred: Option<&str>) -> Vec<String> {
 }
 
 /// Resolve a command to an executable file, searching `PATH` for a bare name.
-fn locate(command: &str) -> Option<PathBuf> {
+fn locate(command: &str, path_var: Option<&std::ffi::OsString>) -> Option<PathBuf> {
     let as_path = Path::new(command);
     if as_path.is_absolute() || as_path.components().count() > 1 {
         return is_executable(as_path).then(|| as_path.to_path_buf());
     }
 
-    let path_var = std::env::var_os("PATH")?;
-    for directory in std::env::split_paths(&path_var) {
+    let path_var = path_var?;
+    for directory in std::env::split_paths(path_var) {
         let candidate = directory.join(command);
         if is_executable(&candidate) {
             return Some(candidate);

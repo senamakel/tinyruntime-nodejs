@@ -35,6 +35,24 @@ const DIST_BASE: &str = "https://nodejs.org/dist";
 /// [`Error::DigestUnavailable`] when the release's digest file cannot be read or
 /// does not list the archive.
 pub async fn select(client: &Client, settings: &RuntimeSettings) -> Result<Distribution> {
+    select_from(client, DIST_BASE, settings).await
+}
+
+/// [`select`] against a named release index.
+///
+/// Split out so the selection, the naming, and the digest lookup can be tested
+/// against a server the test controls. Reaching nodejs.org from a unit test
+/// would make the suite depend on the network and on a release staying
+/// published, which the repository's testing rules rule out.
+///
+/// # Errors
+///
+/// As [`select`].
+pub async fn select_from(
+    client: &Client,
+    dist_base: &str,
+    settings: &RuntimeSettings,
+) -> Result<Distribution> {
     if version::major(&settings.version).is_none() {
         return Err(Error::InvalidVersion(settings.version.clone()));
     }
@@ -42,8 +60,8 @@ pub async fn select(client: &Client, settings: &RuntimeSettings) -> Result<Distr
     let host = host_archive()?;
 
     let archive_name = format!("node-{version}-{}", host.suffix);
-    let url = format!("{DIST_BASE}/{version}/{archive_name}");
-    let digest = fetch_digest(client, &version, &archive_name).await?;
+    let url = format!("{dist_base}/{version}/{archive_name}");
+    let digest = fetch_digest(client, dist_base, &version, &archive_name).await?;
 
     tracing::info!(
         archive = %archive_name,
@@ -60,8 +78,13 @@ pub async fn select(client: &Client, settings: &RuntimeSettings) -> Result<Distr
 }
 
 /// Read `SHASUMS256.txt` for a release and return the digest for one archive.
-async fn fetch_digest(client: &Client, version: &str, archive_name: &str) -> Result<String> {
-    let url = format!("{DIST_BASE}/{version}/SHASUMS256.txt");
+async fn fetch_digest(
+    client: &Client,
+    dist_base: &str,
+    version: &str,
+    archive_name: &str,
+) -> Result<String> {
+    let url = format!("{dist_base}/{version}/SHASUMS256.txt");
     let body = client
         .get(&url)
         .header(
