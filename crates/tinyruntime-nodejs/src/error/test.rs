@@ -1,17 +1,41 @@
 //! Unit tests for the crate-wide error type.
-
 #![allow(clippy::unwrap_used, clippy::expect_used, clippy::panic)]
 
-use super::*;
+use super::Error;
 
 #[test]
-fn renders_a_human_readable_message() {
-    assert_eq!(Error::EmptyName.to_string(), "name must not be empty");
+fn messages_are_lowercase_and_unpunctuated() {
+    let errors = [
+        Error::UnsupportedHost {
+            os: "freebsd".to_string(),
+            arch: "x86_64".to_string(),
+        },
+        Error::InvalidVersion("latest".to_string()),
+        Error::DigestUnavailable {
+            version: "v22.11.0".to_string(),
+            reason: "the request timed out".to_string(),
+        },
+    ];
+    for error in errors {
+        let rendered = error.to_string();
+        assert!(!rendered.ends_with('.'), "`{rendered}` ends with punctuation");
+        let first = rendered.chars().next().expect("a non-empty message");
+        assert!(!first.is_uppercase(), "`{rendered}` starts with a capital");
+    }
 }
 
 #[test]
-fn is_a_standard_error() {
-    fn assert_error<E: std::error::Error>(_: &E) {}
+fn an_unsupported_host_names_the_machine_it_refused() {
+    let rendered = Error::UnsupportedHost {
+        os: "freebsd".to_string(),
+        arch: "riscv64".to_string(),
+    }
+    .to_string();
+    assert!(rendered.contains("freebsd/riscv64"), "got `{rendered}`");
+}
 
-    assert_error(&Error::EmptyName);
+#[test]
+fn an_invalid_version_quotes_what_was_asked_for() {
+    let rendered = Error::InvalidVersion("latest".to_string()).to_string();
+    assert!(rendered.contains("`latest`"), "got `{rendered}`");
 }
