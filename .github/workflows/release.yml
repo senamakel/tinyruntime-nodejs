@@ -23,7 +23,6 @@ permissions:
 env:
   # The workspace member that ships as the loadable module. Its package name is
   # the artifact name and the library name.
-  # the same inherited version and is not packaged separately.
   RELEASE_PACKAGE: tinyruntime-nodejs
 
 jobs:

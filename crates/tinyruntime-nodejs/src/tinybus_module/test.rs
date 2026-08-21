@@ -30,6 +30,17 @@ fn declared_methods_match_the_dispatch_table() {
 }
 
 #[test]
+fn the_object_path_is_the_one_the_manifest_will_declare() {
+    // `tinybus_module!` derives this module's manifest path from its bus name.
+    // Serving anywhere else ships a manifest that disagrees with the object
+    // actually exported, which no amount of in-process testing would catch.
+    assert_eq!(
+        names::providers::NODEJS_OBJECT_PATH,
+        names::object_path_for(names::providers::NODEJS)
+    );
+}
+
+#[test]
 fn the_served_interface_is_the_shared_provider_interface() {
     // Serving anything else would make this module unroutable: the router
     // addresses every provider through one interface.
@@ -54,7 +65,7 @@ async fn the_router_can_describe_this_provider_over_a_bus() -> TinyBusResult<()>
     let client = Connection::connect(bus.connect().await?).await?;
     let proxy = client.proxy(
         names::providers::NODEJS,
-        names::PROVIDER_OBJECT_PATH,
+        names::providers::NODEJS_OBJECT_PATH,
         names::PROVIDER_INTERFACE,
     )?;
     let descriptor: ProviderDescriptor = proxy.call(names::provider_methods::DESCRIBE, ()).await?;
@@ -84,7 +95,7 @@ async fn the_harness_crosses_the_bus_intact() -> TinyBusResult<()> {
     let client = Connection::connect(bus.connect().await?).await?;
     let proxy = client.proxy(
         names::providers::NODEJS,
-        names::PROVIDER_OBJECT_PATH,
+        names::providers::NODEJS_OBJECT_PATH,
         names::PROVIDER_INTERFACE,
     )?;
     let harness: WorkerHarness = proxy.call(names::provider_methods::HARNESS, ()).await?;
@@ -111,7 +122,7 @@ async fn a_directory_that_is_not_a_toolchain_is_reported_empty_rather_than_faili
     let client = Connection::connect(bus.connect().await?).await?;
     let proxy = client.proxy(
         names::providers::NODEJS,
-        names::PROVIDER_OBJECT_PATH,
+        names::providers::NODEJS_OBJECT_PATH,
         names::PROVIDER_INTERFACE,
     )?;
     let response: LayoutResponse = proxy
@@ -143,7 +154,7 @@ async fn detecting_a_host_interpreter_answers_rather_than_failing() -> TinyBusRe
     let client = Connection::connect(bus.connect().await?).await?;
     let proxy = client.proxy(
         names::providers::NODEJS,
-        names::PROVIDER_OBJECT_PATH,
+        names::providers::NODEJS_OBJECT_PATH,
         names::PROVIDER_INTERFACE,
     )?;
     let _: LayoutResponse = proxy
@@ -168,7 +179,7 @@ async fn a_version_that_is_not_one_is_refused_with_a_readable_reason() -> TinyBu
     let client = Connection::connect(bus.connect().await?).await?;
     let proxy = client.proxy(
         names::providers::NODEJS,
-        names::PROVIDER_OBJECT_PATH,
+        names::providers::NODEJS_OBJECT_PATH,
         names::PROVIDER_INTERFACE,
     )?;
     let result = proxy

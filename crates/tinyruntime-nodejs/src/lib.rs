@@ -65,6 +65,6 @@ pub use tinyruntime_bus::NODEJS;
 // very types the module serves rather than copies of them.
 pub use tinyruntime_bus::{
     ArchiveFormat, CONTRACT_VERSION, Distribution, Language, LayoutRequest, LayoutResponse,
-    PROVIDER_INTERFACE, PROVIDER_METHODS, PROVIDER_OBJECT_PATH, ProviderDescriptor, RuntimeLayout,
-    RuntimeSettings, WORKER_PROTOCOL_VERSION, WorkerHarness, names,
+    PROVIDER_INTERFACE, PROVIDER_METHODS, ProviderDescriptor, RuntimeLayout, RuntimeSettings,
+    WORKER_PROTOCOL_VERSION, WorkerHarness, names, object_path_for,
 };

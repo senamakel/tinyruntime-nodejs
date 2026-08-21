@@ -9,9 +9,12 @@
 //! as compatible, which archive nodejs.org publishes for this machine, where the
 //! binaries sit once it is unpacked, and what a warm Node worker looks like.
 //!
-//! The interface it serves is [`names::PROVIDER_INTERFACE`], the same one every
-//! provider serves — that is what makes them interchangeable. The well-known name
-//! it claims is its own, because two peers cannot hold the same one.
+//! The interface it implements is [`names::PROVIDER_INTERFACE`], the same one
+//! every provider implements — that is what makes them interchangeable. The
+//! well-known name it claims is its own, because two peers cannot hold the same
+//! one, and it serves at the path derived from that name: `tinybus_module!`
+//! builds this module's manifest path the same way, so serving anywhere else
+//! would ship a manifest that disagreed with the object exported here.
 
 use std::path::Path;
 
@@ -81,7 +84,7 @@ impl NodeProvider {
 async fn setup(connection: Connection) -> TinyBusResult<()> {
     connection
         .serve_at(
-            names::PROVIDER_OBJECT_PATH.try_into()?,
+            names::providers::NODEJS_OBJECT_PATH.try_into()?,
             NodeProvider {
                 client: Client::new(),
             },
