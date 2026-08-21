@@ -36,8 +36,6 @@ serde_json = { workspace = true }
 # The layout tests probe a fabricated install tree in a scratch directory, and
 # the harness tests launch a real `node` against a loopback listener.
 tempfile = { workspace = true }
-# The end-to-end suite drives the real router against this provider.
-tinyruntime = { workspace = true }
 
 [features]
 default = []
