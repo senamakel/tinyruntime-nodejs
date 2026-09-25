@@ -71,4 +71,5 @@ fn linked_entry_points_are_available_to_a_host() {
     );
     let manifest = tinyruntime_nodejs::linked::tinybus_module_manifest_v1();
     assert!(manifest.len > 0);
+    tinyruntime_nodejs::linked_module().expect("generated manifest is valid");
 }
