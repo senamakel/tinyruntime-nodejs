@@ -56,3 +56,9 @@ fn an_unsupported_host_is_reported_by_name() {
     let error = distribution::archive_for("plan9", "x86_64").expect_err("no build exists");
     assert!(matches!(error, Error::UnsupportedHost { .. }));
 }
+
+#[cfg(feature = "static-link")]
+#[test]
+fn linked_module_can_be_registered_by_a_host() {
+    tinyruntime_nodejs::linked_module().expect("generated manifest is valid");
+}
