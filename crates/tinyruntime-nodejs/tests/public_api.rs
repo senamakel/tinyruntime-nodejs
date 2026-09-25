@@ -56,3 +56,19 @@ fn an_unsupported_host_is_reported_by_name() {
     let error = distribution::archive_for("plan9", "x86_64").expect_err("no build exists");
     assert!(matches!(error, Error::UnsupportedHost { .. }));
 }
+
+#[cfg(feature = "static-link")]
+#[test]
+fn linked_entry_points_are_available_to_a_host() {
+    fn assert_entry_types(
+        _: &tinybus::module::abi::TbAbiDescriptor,
+        _: tinybus::module::abi::TbModuleInit,
+    ) {
+    }
+    assert_entry_types(
+        &tinyruntime_nodejs::linked::TINYBUS_MODULE_ABI_V1,
+        tinyruntime_nodejs::linked::tinybus_module_init_v1,
+    );
+    let manifest = tinyruntime_nodejs::linked::tinybus_module_manifest_v1();
+    assert!(manifest.len > 0);
+}
